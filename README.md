@@ -1,2 +1,1 @@
-# bd libreria
-.
+# Base de datos de una libreria
