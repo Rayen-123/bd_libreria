@@ -141,3 +141,4 @@ CREATE TABLE libro (
     FOREIGN KEY (id_editorial) REFERENCES editorial(id_editorial),
     FOREIGN KEY (id_saga) REFERENCES sagas(id_saga)
 );
+
