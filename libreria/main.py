@@ -9,70 +9,64 @@ from modulos.categorias import abrir_categorias
 from modulos.editoriales import abrir_editoriales
 from modulos.sagas import abrir_sagas
 from modulos.reportes import abrir_menu_reportes
+from modulos.empleados import abrir_empleados
+from modulos.cajeros import abrir_cajeros
 
 ventana = tk.Tk()
 
 ventana.title("Sistema Librería")
 ventana.geometry("800x600")
 
-titulo = tk.Label(
-    ventana,
-    text="Sistema de Gestión de Librería",
-    font=("Arial", 18)
-)
-
-titulo.pack(pady=20)
-
 def abrir_inventario():
 
-    ventana = tk.Toplevel()
+    ventana_inventario = tk.Toplevel()
 
-    ventana.title("Inventario")
-    ventana.geometry("300x300")
+    ventana_inventario.title("Inventario")
+    ventana_inventario.geometry("300x350")
 
     tk.Label(
-        ventana,
+        ventana_inventario,
         text="Inventario",
         font=("Arial", 14)
     ).pack(pady=10)
 
     tk.Button(
-        ventana,
+        ventana_inventario,
         text="Libros",
         width=20,
         command=abrir_libros
     ).pack(pady=5)
 
     tk.Button(
-        ventana,
+        ventana_inventario,
         text="Productos",
         width=20,
         command=abrir_productos
     ).pack(pady=5)
 
     tk.Button(
-        ventana,
+        ventana_inventario,
         text="Autores",
         width=20,
         command=abrir_autores
     ).pack(pady=5)
 
     tk.Button(
-        ventana,
+        ventana_inventario,
         text="Categorías",
         width=20,
         command=abrir_categorias
     ).pack(pady=5)
 
     tk.Button(
-        ventana,
+        ventana_inventario,
         text="Editoriales",
         width=20,
         command=abrir_editoriales
     ).pack(pady=5)
 
     tk.Button(
-        ventana,
+        ventana_inventario,
         text="Sagas",
         width=20,
         command=abrir_sagas
@@ -80,26 +74,26 @@ def abrir_inventario():
 
 def abrir_menu_ventas():
 
-    ventana = tk.Toplevel()
+    ventana_ventas = tk.Toplevel()
 
-    ventana.title("Ventas")
-    ventana.geometry("300x200")
+    ventana_ventas.title("Ventas")
+    ventana_ventas.geometry("300x200")
 
     tk.Label(
-        ventana,
+        ventana_ventas,
         text="Ventas",
         font=("Arial", 14)
     ).pack(pady=10)
 
     tk.Button(
-        ventana,
+        ventana_ventas,
         text="Nueva Venta",
         width=20,
         command=abrir_ventas
     ).pack(pady=5)
 
     tk.Button(
-        ventana,
+        ventana_ventas,
         text="Historial de Ventas",
         width=20,
         command=abrir_historial_ventas
@@ -107,63 +101,100 @@ def abrir_menu_ventas():
 
 def abrir_personal():
 
-    ventana = tk.Toplevel()
+    ventana_personal = tk.Toplevel()
 
-    ventana.title("Personal")
-    ventana.geometry("300x200")
+    ventana_personal.title("Personal")
+    ventana_personal.geometry("300x200")
 
     tk.Label(
-        ventana,
+        ventana_personal,
         text="Personal",
         font=("Arial", 14)
     ).pack(pady=10)
 
     tk.Button(
-        ventana,
+        ventana_personal,
         text="Empleados",
-        width=20
+        width=20,
+        command=abrir_empleados
     ).pack(pady=5)
 
     tk.Button(
-        ventana,
+        ventana_personal,
         text="Cajeros",
-        width=20
+        width=20,
+        command=abrir_cajeros
     ).pack(pady=5)
 
-
-tk.Button(
+titulo = tk.Label(
     ventana,
-    text="Inventario",
-    width=20,
-    command=abrir_inventario
-).pack(pady=5)
+    text="Sistema de Gestión de Librería",
+    font=("Arial", 18)
+)
+
+titulo.pack(pady=30)
 
 tk.Button(
     ventana,
     text="Ventas",
     width=20,
+    height=2,
     command=abrir_menu_ventas
-).pack(pady=5)
+).pack(pady=20)
+
+frame_menu = tk.Frame(ventana)
+frame_menu.pack(pady=20)
 
 tk.Button(
-    ventana,
-    text="Reportes",
+    frame_menu,
+    text="Inventario",
     width=20,
-    command=abrir_menu_reportes
-).pack(pady=5)
+    height=2,
+    command=abrir_inventario
+).grid(
+    row=0,
+    column=0,
+    padx=40,
+    pady=15
+)
 
 tk.Button(
-    ventana,
+    frame_menu,
     text="Clientes",
     width=20,
+    height=2,
     command=abrir_clientes
-).pack(pady=5)
+).grid(
+    row=0,
+    column=1,
+    padx=40,
+    pady=15
+)
 
 tk.Button(
-    ventana,
+    frame_menu,
+    text="Reportes",
+    width=20,
+    height=2,
+    command=abrir_menu_reportes
+).grid(
+    row=1,
+    column=0,
+    padx=40,
+    pady=15
+)
+
+tk.Button(
+    frame_menu,
     text="Personal",
     width=20,
+    height=2,
     command=abrir_personal
-).pack(pady=5)
+).grid(
+    row=1,
+    column=1,
+    padx=40,
+    pady=15
+)
 
 ventana.mainloop()
