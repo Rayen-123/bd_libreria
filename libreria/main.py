@@ -1,9 +1,9 @@
 import tkinter as tk
-from clientes import abrir_clientes
-from productos import abrir_productos
-from ventas import abrir_ventas
-from libros import abrir_libros
-from historial_ventas import abrir_historial_ventas
+from modulos.clientes import abrir_clientes
+from modulos.productos import abrir_productos
+from modulos.ventas import abrir_ventas
+from modulos.libros import abrir_libros
+from modulos.historial_ventas import abrir_historial_ventas
 
 ventana = tk.Tk()
 
