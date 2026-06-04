@@ -8,6 +8,7 @@ from modulos.autores import abrir_autores
 from modulos.categorias import abrir_categorias
 from modulos.editoriales import abrir_editoriales
 from modulos.sagas import abrir_sagas
+from modulos.reportes import abrir_menu_reportes
 
 ventana = tk.Tk()
 
@@ -129,6 +130,7 @@ def abrir_personal():
         width=20
     ).pack(pady=5)
 
+
 tk.Button(
     ventana,
     text="Inventario",
@@ -141,6 +143,13 @@ tk.Button(
     text="Ventas",
     width=20,
     command=abrir_menu_ventas
+).pack(pady=5)
+
+tk.Button(
+    ventana,
+    text="Reportes",
+    width=20,
+    command=abrir_menu_reportes
 ).pack(pady=5)
 
 tk.Button(
