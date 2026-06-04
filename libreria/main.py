@@ -4,6 +4,10 @@ from modulos.productos import abrir_productos
 from modulos.ventas import abrir_ventas
 from modulos.libros import abrir_libros
 from modulos.historial_ventas import abrir_historial_ventas
+from modulos.autores import abrir_autores
+from modulos.categorias import abrir_categorias
+from modulos.editoriales import abrir_editoriales
+from modulos.sagas import abrir_sagas
 
 ventana = tk.Tk()
 
@@ -48,25 +52,29 @@ def abrir_inventario():
     tk.Button(
         ventana,
         text="Autores",
-        width=20
+        width=20,
+        command=abrir_autores
     ).pack(pady=5)
 
     tk.Button(
         ventana,
         text="Categorías",
-        width=20
+        width=20,
+        command=abrir_categorias
     ).pack(pady=5)
 
     tk.Button(
         ventana,
         text="Editoriales",
-        width=20
+        width=20,
+        command=abrir_editoriales
     ).pack(pady=5)
 
     tk.Button(
         ventana,
         text="Sagas",
-        width=20
+        width=20,
+        command=abrir_sagas
     ).pack(pady=5)
 
 def abrir_menu_ventas():
