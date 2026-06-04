@@ -142,3 +142,10 @@ CREATE TABLE libro (
     FOREIGN KEY (id_saga) REFERENCES sagas(id_saga)
 );
 
+ALTER TABLE libro
+ADD COLUMN id_producto INT UNIQUE;
+
+ALTER TABLE libro
+ADD CONSTRAINT fk_libro_producto
+FOREIGN KEY (id_producto)
+REFERENCES producto(id_producto);
