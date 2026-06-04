@@ -474,9 +474,6 @@ def abrir_ventas():
 
         mostrar_confirmacion()
 
-
-
-
     tk.Button(
         ventana,
         text="Registrar Venta",

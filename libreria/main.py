@@ -18,36 +18,135 @@ titulo = tk.Label(
 
 titulo.pack(pady=20)
 
+def abrir_inventario():
+
+    ventana = tk.Toplevel()
+
+    ventana.title("Inventario")
+    ventana.geometry("300x300")
+
+    tk.Label(
+        ventana,
+        text="Inventario",
+        font=("Arial", 14)
+    ).pack(pady=10)
+
+    tk.Button(
+        ventana,
+        text="Libros",
+        width=20,
+        command=abrir_libros
+    ).pack(pady=5)
+
+    tk.Button(
+        ventana,
+        text="Productos",
+        width=20,
+        command=abrir_productos
+    ).pack(pady=5)
+
+    tk.Button(
+        ventana,
+        text="Autores",
+        width=20
+    ).pack(pady=5)
+
+    tk.Button(
+        ventana,
+        text="Categorías",
+        width=20
+    ).pack(pady=5)
+
+    tk.Button(
+        ventana,
+        text="Editoriales",
+        width=20
+    ).pack(pady=5)
+
+    tk.Button(
+        ventana,
+        text="Sagas",
+        width=20
+    ).pack(pady=5)
+
+def abrir_menu_ventas():
+
+    ventana = tk.Toplevel()
+
+    ventana.title("Ventas")
+    ventana.geometry("300x200")
+
+    tk.Label(
+        ventana,
+        text="Ventas",
+        font=("Arial", 14)
+    ).pack(pady=10)
+
+    tk.Button(
+        ventana,
+        text="Nueva Venta",
+        width=20,
+        command=abrir_ventas
+    ).pack(pady=5)
+
+    tk.Button(
+        ventana,
+        text="Historial de Ventas",
+        width=20,
+        command=abrir_historial_ventas
+    ).pack(pady=5)
+
+def abrir_personal():
+
+    ventana = tk.Toplevel()
+
+    ventana.title("Personal")
+    ventana.geometry("300x200")
+
+    tk.Label(
+        ventana,
+        text="Personal",
+        font=("Arial", 14)
+    ).pack(pady=10)
+
+    tk.Button(
+        ventana,
+        text="Empleados",
+        width=20
+    ).pack(pady=5)
+
+    tk.Button(
+        ventana,
+        text="Cajeros",
+        width=20
+    ).pack(pady=5)
+
+tk.Button(
+    ventana,
+    text="Inventario",
+    width=20,
+    command=abrir_inventario
+).pack(pady=5)
+
+tk.Button(
+    ventana,
+    text="Ventas",
+    width=20,
+    command=abrir_menu_ventas
+).pack(pady=5)
+
 tk.Button(
     ventana,
     text="Clientes",
     width=20,
     command=abrir_clientes
-).pack(pady=10)
+).pack(pady=5)
 
 tk.Button(
     ventana,
-    text="Productos",
-    command=abrir_productos
-).pack(pady=10)
-
-tk.Button(
-    ventana,
-    text="Ventas",
-    command=abrir_ventas
-).pack(pady=10)
-
-tk.Button(
-    ventana,
-    text="Libros",
-    command=abrir_libros
-).pack(pady=10)
-
-tk.Button(
-    ventana,
-    text="Historial de Ventas",
-    width=25,
-    command=abrir_historial_ventas
+    text="Personal",
+    width=20,
+    command=abrir_personal
 ).pack(pady=5)
 
 ventana.mainloop()
