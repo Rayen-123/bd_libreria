@@ -3,6 +3,7 @@ from clientes import abrir_clientes
 from productos import abrir_productos
 from ventas import abrir_ventas
 from libros import abrir_libros
+from historial_ventas import abrir_historial_ventas
 
 ventana = tk.Tk()
 
@@ -41,5 +42,12 @@ tk.Button(
     text="Libros",
     command=abrir_libros
 ).pack(pady=10)
+
+tk.Button(
+    ventana,
+    text="Historial de Ventas",
+    width=25,
+    command=abrir_historial_ventas
+).pack(pady=5)
 
 ventana.mainloop()

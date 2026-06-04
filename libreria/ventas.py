@@ -80,6 +80,26 @@ def obtener_cajeros():
 
     return cajeros
 
+def obtener_cajas():
+
+    conn = conectar()
+    cur = conn.cursor()
+
+    cur.execute("""
+        SELECT
+            id_caja,
+            numero_caja
+        FROM caja
+        ORDER BY numero_caja
+    """)
+
+    cajas = cur.fetchall()
+
+    cur.close()
+    conn.close()
+
+    return cajas
+
 #CRUD SQL Venta
 def crear_venta(id_cliente, id_caja, id_cajero):
 
@@ -157,7 +177,10 @@ def actualizar_total(id_venta, total):
         UPDATE venta
         SET total = %s
         WHERE id_venta = %s
-    """, (total, id_venta))
+    """, (
+        total,
+        id_venta
+    ))
 
     conn.commit()
 
@@ -170,7 +193,9 @@ def abrir_ventas():
     ventana = tk.Toplevel()
 
     ventana.title("Ventas")
-    ventana.geometry("700x500")
+    ventana.geometry("900x700")
+
+    detalle_venta = []
 
     #Cliente
     tk.Label(
@@ -192,6 +217,46 @@ def abrir_ventas():
         for cliente in clientes
     ]
 
+    #Cajero
+    tk.Label(
+        ventana,
+        text="Cajero"
+    ).pack()
+
+    combo_cajero = ttk.Combobox(
+        ventana,
+        width=40
+    )
+
+    combo_cajero.pack(pady=5)
+
+    cajeros = obtener_cajeros()
+
+    combo_cajero["values"] = [
+        f"{cajero[0]} - {cajero[1]}"
+        for cajero in cajeros
+    ]
+
+    #Caja
+    tk.Label(
+        ventana,
+        text="Caja"
+    ).pack()
+
+    combo_caja = ttk.Combobox(
+        ventana,
+        width=40
+    )
+
+    combo_caja.pack(pady=5)
+
+    cajas = obtener_cajas()
+
+    combo_caja["values"] = [
+        f"{caja[0]} - Caja {caja[1]}"
+        for caja in cajas
+    ]
+
     #Sucursal
     tk.Label(
         ventana,
@@ -210,26 +275,6 @@ def abrir_ventas():
     combo_sucursal["values"] = [
         f"{s[0]} - {s[1]}"
         for s in sucursales
-    ]
-
-    #Cajero
-    tk.Label(
-        ventana,
-        text="Cajero"
-    ).pack()
-
-    combo_cajero = ttk.Combobox(
-        ventana,
-        width=40
-    )
-
-    combo_cajero.pack(pady=5)
-
-    cajeros = obtener_cajeros()
-
-    combo_cajero["values"] = [
-        f"{c[0]} - {c[1]} {c[2]}"
-        for c in cajeros
     ]
 
     #Producto
@@ -261,23 +306,50 @@ def abrir_ventas():
 
     entry_cantidad.pack(pady=5)
 
-    
-    def registrar():
+    tabla_detalle = ttk.Treeview(
+        ventana,
+        columns=(
+            "Producto",
+            "Cantidad",
+            "Precio",
+            "Subtotal"
+        ),
+        show="headings"
+    )
 
-        id_cliente = int(
-            combo_cliente.get().split(" - ")[0]
-        )
+    tabla_detalle.heading("Producto", text="Producto")
+    tabla_detalle.heading("Cantidad", text="Cantidad")
+    tabla_detalle.heading("Precio", text="Precio")
+    tabla_detalle.heading("Subtotal", text="Subtotal")
+
+    tabla_detalle.pack(
+        fill="both",
+        expand=True,
+        pady=10
+    )
+
+    def cargar_detalle():
+
+        for fila in tabla_detalle.get_children():
+            tabla_detalle.delete(fila)
+
+        for item in detalle_venta:
+
+            tabla_detalle.insert(
+                "",
+                "end",
+                values=(
+                    item["nombre"],
+                    item["cantidad"],
+                    item["precio"],
+                    item["subtotal"]
+                )
+            )
+
+    def agregar_producto():
 
         id_producto = int(
             combo_producto.get().split(" - ")[0]
-        )
-
-        id_sucursal = int(
-            combo_sucursal.get().split(" - ")[0]
-        )
-
-        id_cajero = int(
-            combo_cajero.get().split(" - ")[0]
         )
 
         cantidad = int(
@@ -291,31 +363,119 @@ def abrir_ventas():
 
         precio = producto[2]
 
-        id_venta = crear_venta(
-            id_cliente
+        subtotal = precio * cantidad
+
+        detalle_venta.append({
+            "id_producto": id_producto,
+            "nombre": producto[1],
+            "cantidad": cantidad,
+            "precio": precio,
+            "subtotal": subtotal
+        })
+
+        cargar_detalle()
+
+        entry_cantidad.delete(0, tk.END)
+
+    tk.Button(
+        ventana,
+        text="Agregar Producto",
+        command=agregar_producto
+    ).pack(pady=5)
+
+
+    def mostrar_confirmacion():
+
+        def aceptar():
+
+            combo_cliente.set("")
+            combo_cajero.set("")
+            combo_caja.set("")
+            combo_sucursal.set("")
+            combo_producto.set("")
+
+            entry_cantidad.delete(0, tk.END)
+
+            detalle_venta.clear()
+            cargar_detalle()
+
+            ventana_ok.destroy()
+
+        ventana_ok = tk.Toplevel()
+
+        ventana_ok.title("Venta registrada")
+        ventana_ok.geometry("350x180")
+        ventana_ok.resizable(False, False)
+
+        tk.Label(
+            ventana_ok,
+            text="Venta registrada correctamente",
+            font=("Arial", 12, "bold")
+        ).pack(pady=20)
+
+        frame_botones = tk.Frame(ventana_ok)
+        frame_botones.pack(pady=10)
+
+        tk.Button(
+            frame_botones,
+            text="Aceptar",
+            width=12,
+            command=aceptar
+        ).grid(row=0, column=0, padx=10)
+
+        tk.Button(
+            frame_botones,
+            text="Imprimir Boleta",
+            width=15
+        ).grid(row=0, column=1, padx=10)
+    
+    def registrar():
+
+        if not detalle_venta:
+            print("No hay productos en la venta")
+            return
+
+        id_cliente = int(
+            combo_cliente.get().split(" - ")[0]
         )
 
-        subtotal = agregar_detalle(
-            id_venta,
-            id_producto,
-            cantidad,
-            precio
+        id_cajero = int(
+            combo_cajero.get().split(" - ")[0]
         )
+
+        id_caja = int(
+            combo_caja.get().split(" - ")[0]
+        )
+
+        id_venta = crear_venta(
+            id_cliente,
+            id_caja,
+            id_cajero
+        )
+
+        total = 0
+
+
+        for item in detalle_venta:
+
+            agregar_detalle(
+                id_venta,
+                item["id_producto"],
+                item["cantidad"],
+                item["precio"]
+            )
+
+            total += item["subtotal"]
 
         actualizar_total(
             id_venta,
-            subtotal
+            total
         )
 
-        messagebox.showinfo(
-        "Venta",
-        "Venta registrada correctamente"
-        )
-        print("Venta registrada")
+        mostrar_confirmacion()
 
-        combo_cliente.set("")
-        combo_producto.set("")
-        entry_cantidad.delete(0, tk.END)
+
+
 
     tk.Button(
         ventana,
