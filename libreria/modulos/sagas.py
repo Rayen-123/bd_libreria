@@ -1,222 +1,82 @@
 import tkinter as tk
-from tkinter import ttk
+from tkinter import ttk, messagebox
 from database import conectar
+from modulos._theme import *
 
 def abrir_sagas():
+    win = tk.Toplevel()
+    win.title("Sagas"); win.geometry("700x520"); win.configure(bg=BG)
+    header(win,"SAGAS","Agregar · Editar · Eliminar")
 
-    ventana_sagas = tk.Toplevel()
+    form = tk.Frame(win,bg=PANEL,pady=12,padx=10); form.pack(fill="x",padx=20,pady=10)
+    lbl(form,"Nombre",0,0);             e_nombre   = entry(form,0,1,28)
+    lbl(form,"Cantidad de libros",0,2); e_cantidad = entry(form,0,3,10)
 
-    ventana_sagas.title("Sagas")
-    ventana_sagas.geometry("1100x600")
+    sel=[None]
+    def limpiar(): e_nombre.delete(0,tk.END); e_cantidad.delete(0,tk.END); sel[0]=None
 
-    tk.Label(
-        ventana_sagas,
-        text="Gestión de Sagas",
-        font=("Arial", 16)
-    ).pack(pady=10)
+    tabla = scrollable_table(win,("ID","Nombre","Cantidad"),[60,360,120],name="Sag",accent=BLUE)
 
-    #Formulario
-    frame_form = tk.Frame(ventana_sagas)
-    frame_form.pack(pady=10)
+    def cargar():
+        for r in tabla.get_children(): tabla.delete(r)
+        for s in obtener_sagas(): tabla.insert("","end",values=s)
 
-    tk.Label(frame_form, text="Nombre").grid(row=0, column=0)
+    def seleccionar(event):
+        s=tabla.selection()
+        if not s: return
+        v=tabla.item(s[0])["values"]; sel[0]=v[0]
+        e_nombre.delete(0,tk.END);   e_nombre.insert(0,v[1])
+        e_cantidad.delete(0,tk.END); e_cantidad.insert(0,v[2])
 
-    entry_nombre = tk.Entry(frame_form)
-    entry_nombre.grid(row=0, column=1)
-
-    tk.Label(frame_form, text="Cantidad de libros").grid(row=1, column=0)
-
-    entry_cantidad = tk.Entry(frame_form)
-    entry_cantidad.grid(row=1, column=1)
-
-    saga_seleccionado = None
-
-    #CRUD sagas
-    def cargar_sagas():
-
-        for fila in tabla.get_children():
-            tabla.delete(fila)
-
-        sagas = obtener_sagas()
-
-        for saga in sagas:
-            tabla.insert("", "end", values=saga)
-
-    def seleccionar_saga(event):
-
-        nonlocal saga_seleccionado
-
-        seleccion = tabla.selection()
-
-        if not seleccion:
-            return
-
-        valores = tabla.item(seleccion[0])["values"]
-
-        saga_seleccionado = valores[0]
-
-        entry_nombre.delete(0, tk.END)
-        entry_cantidad.delete(0, tk.END)
-
-        entry_nombre.insert(0, valores[1])
-        entry_cantidad.insert(0, valores[2])
+    tabla.bind("<<TreeviewSelect>>",seleccionar)
 
     def guardar():
+        if not e_nombre.get():
+            messagebox.showwarning("Faltan datos","El nombre es obligatorio.",parent=win); return
+        guardar_saga(e_nombre.get(),e_cantidad.get()); cargar(); limpiar()
 
-        nombre = entry_nombre.get()
-        cantidad = entry_cantidad.get()
-
-        guardar_saga(
-            nombre,
-            cantidad
-        )
-
-        cargar_sagas()
-
-        entry_nombre.delete(0, tk.END)
-        entry_cantidad.delete(0, tk.END)
-
-        print("saga guardado")
-        
     def editar():
-
-        if saga_seleccionado is None:
-            return
-
-        actualizar_saga(
-            saga_seleccionado,
-            entry_nombre.get(),
-            entry_cantidad.get(),
-        )
-
-        cargar_sagas()
+        if not sel[0]:
+            messagebox.showwarning("Sin selección","Selecciona una saga.",parent=win); return
+        actualizar_saga(sel[0],e_nombre.get(),e_cantidad.get()); cargar()
 
     def eliminar():
+        s=tabla.selection()
+        if not s:
+            messagebox.showwarning("Sin selección","Selecciona una saga.",parent=win); return
+        v=tabla.item(s[0])["values"]
+        if messagebox.askyesno("Confirmar",f"¿Eliminar '{v[1]}'?",parent=win):
+            eliminar_saga(v[0]); cargar(); limpiar()
 
-        seleccion = tabla.selection()
+    bf=tk.Frame(win,bg=BG); bf.pack(pady=10)
+    btn(bf,"+ Guardar",  guardar,  BLUE).pack(side="left",padx=6)
+    btn(bf,"Actualizar",editar,   ACCENT).pack(side="left",padx=6)
+    btn(bf,"x Eliminar",  eliminar, RED).pack(side="left",padx=6)
+    btn(bf,"Limpiar",   limpiar,  SUBTEXT,12).pack(side="left",padx=6)
+    cargar()
 
-        if not seleccion:
-            return
-
-        valores = tabla.item(seleccion[0])["values"]
-
-        id_saga = valores[0]
-
-        eliminar_saga(id_saga)
-
-        cargar_sagas()
-
-    tk.Button(
-        ventana_sagas,
-        text="Guardar saga",
-        command=guardar
-    ).pack(pady=10)
-
-    #Tabla de sagas
-    tabla = ttk.Treeview(
-        ventana_sagas,
-        columns=("ID", "Nombre", "Cantidad"),
-        show="headings"
-    )
-
-    tabla.heading("ID", text="ID")
-    tabla.heading("Nombre", text="Nombre")
-    tabla.heading("Cantidad", text="Cantidad")
-
-    tabla.pack(fill="both", expand=True)
-
-    tabla.bind(
-        "<<TreeviewSelect>>",
-        seleccionar_saga
-    )
-
-    def cargar_sagas():
-
-        for fila in tabla.get_children():
-            tabla.delete(fila)
-
-        sagas = obtener_sagas()
-
-        for saga in sagas:
-            tabla.insert("", "end", values=saga)
-
-    cargar_sagas()
-    
-    tk.Button(
-        ventana_sagas,
-        text="Eliminar saga",
-        command=eliminar
-    ).pack(pady=5)
-
-    tk.Button(
-        ventana_sagas,
-        text="Actualizar saga",
-        command=editar
-    ).pack(pady=5)
-
-
-#CRUD sagas SQL
 def guardar_saga(nombre,cantidad):
-
-    conn = conectar()
-    cur = conn.cursor()
-
-    cur.execute("""
-        INSERT INTO sagas(nombre, cantidad_libros)
-        VALUES (%s, %s)
-    """, (nombre, cantidad))
-
-    conn.commit()
-
-    cur.close()
-    conn.close()
+    conn=conectar(); cur=conn.cursor()
+    cur.execute("INSERT INTO sagas(nombre,cantidad_libros) VALUES(%s,%s)",(nombre,cantidad))
+    conn.commit(); cur.close(); conn.close()
 
 def obtener_sagas():
-
-    conn = conectar()
-    cur = conn.cursor()
-
-    cur.execute("""
-        SELECT id_saga, nombre, cantidad_libros
-        FROM sagas
-        ORDER BY id_saga
-    """)
-
-    sagas = cur.fetchall()
-
-    cur.close()
-    conn.close()
-
-    return sagas
+    conn=conectar(); cur=conn.cursor()
+    cur.execute("SELECT id_saga,nombre,cantidad_libros FROM sagas ORDER BY id_saga")
+    r=cur.fetchall(); cur.close(); conn.close(); return r
 
 def eliminar_saga(id_saga):
+    try:
+        conn=conectar(); cur=conn.cursor()
+        cur.execute("DELETE FROM sagas WHERE id_saga=%s",(id_saga,))
+        conn.commit(); cur.close(); conn.close()
+    except Exception as e:
+        conn.rollback(); messagebox.showerror("Error",str(e))
 
-    conn = conectar()
-    cur = conn.cursor()
-
-    cur.execute("""
-        DELETE FROM sagas
-        WHERE id_saga = %s
-    """, (id_saga))
-
-    conn.commit()
-
-    cur.close()
-    conn.close()
-
-def actualizar_saga(id_saga, nombre, cantidad):
-
-    conn = conectar()
-    cur = conn.cursor()
-
-    cur.execute("""
-        UPDATE sagas
-        SET nombre = %s,
-            cantidad_libros = %s,
-        WHERE id_saga = %s
-    """, (nombre, cantidad, id_saga))
-
-    conn.commit()
-
-    cur.close()
-    conn.close()
+def actualizar_saga(id_saga,nombre,cantidad):
+    try:
+        conn=conectar(); cur=conn.cursor()
+        cur.execute("UPDATE sagas SET nombre=%s,cantidad_libros=%s WHERE id_saga=%s",(nombre,cantidad,id_saga))
+        conn.commit(); cur.close(); conn.close()
+    except Exception as e:
+        conn.rollback(); messagebox.showerror("Error",str(e))

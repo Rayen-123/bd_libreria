@@ -1,248 +1,98 @@
 import tkinter as tk
-from tkinter import ttk
+from tkinter import ttk, messagebox
 from database import conectar
+from modulos._theme import *
 
 def abrir_clientes():
+    win = tk.Toplevel()
+    win.title("Gestión de Clientes"); win.geometry("1050x640"); win.configure(bg=BG)
+    header(win, "CLIENTES", "Agregar · Editar · Eliminar")
 
-    ventana_clientes = tk.Toplevel()
+    form = tk.Frame(win, bg=PANEL, pady=12, padx=10)
+    form.pack(fill="x", padx=20, pady=10)
+    lbl(form, "Nombre",   0, 0); e_nombre   = entry(form, 0, 1)
+    lbl(form, "Apellido", 0, 2); e_apellido = entry(form, 0, 3)
+    lbl(form, "RUT",      1, 0); e_rut      = entry(form, 1, 1)
+    lbl(form, "Teléfono", 1, 2); e_telefono = entry(form, 1, 3)
 
-    ventana_clientes.title("Clientes")
-    ventana_clientes.geometry("1100x600")
+    cliente_sel = [None]
 
-    tk.Label(
-        ventana_clientes,
-        text="Gestión de Clientes",
-        font=("Arial", 16)
-    ).pack(pady=10)
+    def limpiar():
+        for e in [e_nombre, e_apellido, e_rut, e_telefono]: e.delete(0, tk.END)
+        cliente_sel[0] = None
 
-    #Formulario
-    frame_form = tk.Frame(ventana_clientes)
-    frame_form.pack(pady=10)
+    tabla = scrollable_table(win, ("ID","Nombre","Apellido","RUT","Teléfono"),
+                             [55,160,160,140,140], name="Cli")
 
-    tk.Label(frame_form, text="Nombre").grid(row=0, column=0)
+    def cargar():
+        for r in tabla.get_children(): tabla.delete(r)
+        for c in obtener_clientes(): tabla.insert("","end",values=c)
 
-    entry_nombre = tk.Entry(frame_form)
-    entry_nombre.grid(row=0, column=1)
+    def seleccionar(event):
+        sel = tabla.selection()
+        if not sel: return
+        v = tabla.item(sel[0])["values"]
+        cliente_sel[0] = v[0]
+        e_nombre.delete(0,tk.END);   e_nombre.insert(0,v[1])
+        e_apellido.delete(0,tk.END); e_apellido.insert(0,v[2])
+        e_rut.delete(0,tk.END);      e_rut.insert(0,v[3])
+        e_telefono.delete(0,tk.END); e_telefono.insert(0,v[4])
 
-    tk.Label(frame_form, text="Apellido").grid(row=1, column=0)
-
-    entry_apellido = tk.Entry(frame_form)
-    entry_apellido.grid(row=1, column=1)
-
-    tk.Label(frame_form, text="RUT").grid(row=2, column=0)
-
-    entry_rut = tk.Entry(frame_form)
-    entry_rut.grid(row=2, column=1)
-
-    tk.Label(frame_form, text="Teléfono").grid(row=3, column=0)
-
-    entry_telefono = tk.Entry(frame_form)
-    entry_telefono.grid(row=3, column=1)
-
-    cliente_seleccionado = None
-
-    #CRUD Clientes
-    def cargar_clientes():
-
-        for fila in tabla.get_children():
-            tabla.delete(fila)
-
-        clientes = obtener_clientes()
-
-        for cliente in clientes:
-            tabla.insert("", "end", values=cliente)
-
-    def seleccionar_cliente(event):
-
-        nonlocal cliente_seleccionado
-
-        seleccion = tabla.selection()
-
-        if not seleccion:
-            return
-
-        valores = tabla.item(seleccion[0])["values"]
-
-        cliente_seleccionado = valores[0]
-
-        entry_nombre.delete(0, tk.END)
-        entry_apellido.delete(0, tk.END)
-        entry_rut.delete(0, tk.END)
-        entry_telefono.delete(0, tk.END)
-
-        entry_nombre.insert(0, valores[1])
-        entry_apellido.insert(0, valores[2])
-        entry_rut.insert(0, valores[3])
-        entry_telefono.insert(0, valores[4])
+    tabla.bind("<<TreeviewSelect>>", seleccionar)
 
     def guardar():
-
-        nombre = entry_nombre.get()
-        apellido = entry_apellido.get()
-        rut = entry_rut.get()
-        telefono = entry_telefono.get()
-
-        guardar_cliente(
-            nombre,
-            apellido,
-            rut,
-            telefono
-        )
-
-        cargar_clientes()
-
-        entry_nombre.delete(0, tk.END)
-        entry_apellido.delete(0, tk.END)
-        entry_rut.delete(0, tk.END)
-        entry_telefono.delete(0, tk.END)
-
-        print("Cliente guardado")
-        
+        n,a,r,t = e_nombre.get(),e_apellido.get(),e_rut.get(),e_telefono.get()
+        if not n or not r:
+            messagebox.showwarning("Faltan datos","Nombre y RUT son obligatorios.",parent=win); return
+        if guardar_cliente(n,a,r,t): cargar(); limpiar()
+            
     def editar():
-
-        if cliente_seleccionado is None:
-            return
-
-        actualizar_cliente(
-            cliente_seleccionado,
-            entry_nombre.get(),
-            entry_apellido.get(),
-            entry_rut.get(),
-            entry_telefono.get()
-        )
-
-        cargar_clientes()
+        if not cliente_sel[0]:
+            messagebox.showwarning("Sin selección","Selecciona un cliente.",parent=win); return
+        if actualizar_cliente(cliente_sel[0],e_nombre.get(),e_apellido.get(),e_rut.get(),e_telefono.get()):
+            cargar(); messagebox.showinfo("","Cliente actualizado.",parent=win)
 
     def eliminar():
+        sel = tabla.selection()
+        if not sel:
+            messagebox.showwarning("Sin selección","Selecciona un cliente.",parent=win); return
+        v = tabla.item(sel[0])["values"]
+        if messagebox.askyesno("Confirmar",f"¿Eliminar a {v[1]} {v[2]}?",parent=win):
+            if eliminar_cliente(v[0]): cargar(); limpiar()
 
-        seleccion = tabla.selection()
+    bf = tk.Frame(win, bg=BG); bf.pack(pady=10)
+    btn(bf,"+ Guardar",  guardar,  ACCENT).pack(side="left",padx=6)
+    btn(bf,"Actualizar",editar,   BLUE).pack(side="left",padx=6)
+    btn(bf,"x Eliminar",  eliminar, RED).pack(side="left",padx=6)
+    btn(bf,"Limpiar",   limpiar,  SUBTEXT,12).pack(side="left",padx=6)
+    cargar()
 
-        if not seleccion:
-            return
-
-        valores = tabla.item(seleccion[0])["values"]
-
-        id_cliente = valores[0]
-
-        eliminar_cliente(id_cliente)
-
-        cargar_clientes()
-
-    tk.Button(
-        ventana_clientes,
-        text="Guardar Cliente",
-        command=guardar
-    ).pack(pady=10)
-
-    #Tabla de clientes
-    tabla = ttk.Treeview(
-        ventana_clientes,
-        columns=("ID", "Nombre", "Apellido", "RUT", "Telefono"),
-        show="headings"
-    )
-
-    tabla.heading("ID", text="ID")
-    tabla.heading("Nombre", text="Nombre")
-    tabla.heading("Apellido", text="Apellido")
-    tabla.heading("RUT", text="RUT")
-    tabla.heading("Telefono", text="Teléfono")
-
-    tabla.pack(fill="both", expand=True)
-
-    tabla.bind(
-        "<<TreeviewSelect>>",
-        seleccionar_cliente
-    )
-
-    def cargar_clientes():
-
-        for fila in tabla.get_children():
-            tabla.delete(fila)
-
-        clientes = obtener_clientes()
-
-        for cliente in clientes:
-            tabla.insert("", "end", values=cliente)
-
-    cargar_clientes()
-    
-    tk.Button(
-        ventana_clientes,
-        text="Eliminar Cliente",
-        command=eliminar
-    ).pack(pady=5)
-
-    tk.Button(
-        ventana_clientes,
-        text="Actualizar Cliente",
-        command=editar
-    ).pack(pady=5)
-
-
-#CRUD Clientes SQL
-def guardar_cliente(nombre,apellido, rut, telefono):
-
-    conn = conectar()
-    cur = conn.cursor()
-
-    cur.execute("""
-        INSERT INTO cliente(nombre, apellido, rut, telefono)
-        VALUES (%s, %s, %s, %s)
-    """, (nombre, apellido, rut, telefono))
-
-    conn.commit()
-
-    cur.close()
-    conn.close()
+def guardar_cliente(nombre,apellido,rut,telefono):
+    try:
+        conn=conectar(); cur=conn.cursor()
+        cur.execute("INSERT INTO cliente(nombre,apellido,rut,telefono) VALUES(%s,%s,%s,%s)",(nombre,apellido,rut,telefono))
+        conn.commit(); cur.close(); conn.close(); return True
+    except Exception as e:
+        conn.rollback(); messagebox.showerror("Error",str(e)); return False
 
 def obtener_clientes():
-
-    conn = conectar()
-    cur = conn.cursor()
-
-    cur.execute("""
-        SELECT id_cliente, nombre, apellido, rut, telefono
-        FROM cliente
-        ORDER BY id_cliente
-    """)
-
-    clientes = cur.fetchall()
-
-    cur.close()
-    conn.close()
-
-    return clientes
+    conn=conectar(); cur=conn.cursor()
+    cur.execute("SELECT id_cliente,nombre,apellido,rut,telefono FROM cliente ORDER BY id_cliente")
+    r=cur.fetchall(); cur.close(); conn.close(); return r
 
 def eliminar_cliente(id_cliente):
+    try:
+        conn=conectar(); cur=conn.cursor()
+        cur.execute("DELETE FROM cliente WHERE id_cliente=%s",(id_cliente,))
+        conn.commit(); cur.close(); conn.close(); return True
+    except:
+        conn.rollback()
+        messagebox.showerror("Error","No se puede eliminar: el cliente tiene ventas registradas."); return False
 
-    conn = conectar()
-    cur = conn.cursor()
-
-    cur.execute("""
-        DELETE FROM cliente
-        WHERE id_cliente = %s
-    """, (id_cliente,))
-
-    conn.commit()
-
-    cur.close()
-    conn.close()
-
-def actualizar_cliente(id_cliente, nombre, apellido, rut, telefono):
-
-    conn = conectar()
-    cur = conn.cursor()
-
-    cur.execute("""
-        UPDATE cliente
-        SET nombre = %s,
-            apellido = %s,
-            rut = %s,
-            telefono = %s
-        WHERE id_cliente = %s
-    """, (nombre, apellido, rut, telefono, id_cliente))
-
-    conn.commit()
-
-    cur.close()
-    conn.close()
+def actualizar_cliente(id_cliente,nombre,apellido,rut,telefono):
+    try:
+        conn=conectar(); cur=conn.cursor()
+        cur.execute("UPDATE cliente SET nombre=%s,apellido=%s,rut=%s,telefono=%s WHERE id_cliente=%s",(nombre,apellido,rut,telefono,id_cliente))
+        conn.commit(); cur.close(); conn.close(); return True
+    except Exception as e:
+        conn.rollback(); messagebox.showerror("Error",str(e)); return False

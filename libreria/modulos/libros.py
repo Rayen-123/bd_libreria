@@ -1,517 +1,160 @@
 import tkinter as tk
-from tkinter import ttk
+from tkinter import ttk, messagebox
 from database import conectar
-
-def obtener_autores():
-
-    conn = conectar()
-    cur = conn.cursor()
-
-    cur.execute("""
-        SELECT id_autor, nombre, apellido
-        FROM autor
-        ORDER BY nombre
-    """)
-
-    autores = cur.fetchall()
-
-    cur.close()
-    conn.close()
-
-    return autores
-
-def obtener_categorias():
-
-    conn = conectar()
-    cur = conn.cursor()
-
-    cur.execute("""
-        SELECT id_categoria, tipo
-        FROM categoria
-        ORDER BY tipo
-    """)
-
-    categorias = cur.fetchall()
-
-    cur.close()
-    conn.close()
-
-    return categorias
-
-def obtener_editoriales():
-
-    conn = conectar()
-    cur = conn.cursor()
-
-    cur.execute("""
-        SELECT id_editorial, nombre
-        FROM editorial
-        ORDER BY nombre
-    """)
-
-    editoriales = cur.fetchall()
-
-    cur.close()
-    conn.close()
-
-    return editoriales
-
-def obtener_sagas():
-
-    conn = conectar()
-    cur = conn.cursor()
-
-    cur.execute("""
-        SELECT id_saga, nombre
-        FROM sagas
-        ORDER BY nombre
-    """)
-
-    sagas = cur.fetchall()
-
-    cur.close()
-    conn.close()
-
-    return sagas
-
-def guardar_libro(titulo,precio,id_autor,id_categoria,id_editorial,id_saga,anio,estante):
-
-    conn = conectar()
-    cur = conn.cursor()
-
-    # Crear producto
-    cur.execute("""
-        INSERT INTO producto(nombre, precio)
-        VALUES (%s, %s)
-        RETURNING id_producto
-    """, (
-        titulo,
-        precio
-    ))
-
-    id_producto = cur.fetchone()[0]
-
-    # Crear libro
-    cur.execute("""
-        INSERT INTO libro(
-            id_autor,
-            id_categoria,
-            id_editorial,
-            id_saga,
-            titulo,
-            anio_publicacion,
-            precio,
-            estante,
-            id_producto
-        )
-        VALUES(
-            %s,
-            %s,
-            %s,
-            %s,
-            %s,
-            %s,
-            %s,
-            %s,
-            %s
-        )
-    """, (
-        id_autor,
-        id_categoria,
-        id_editorial,
-        id_saga,
-        titulo,
-        anio,
-        precio,
-        estante,
-        id_producto
-    ))
-
-    conn.commit()
-
-    cur.close()
-    conn.close()
-
-def obtener_libros():
-
-    conn = conectar()
-    cur = conn.cursor()
-
-    cur.execute("""
-        SELECT
-            l.id_libro,
-            l.titulo,
-            l.precio,
-            l.anio_publicacion,
-            l.estante,
-            l.id_autor,
-            l.id_categoria,
-            l.id_editorial,
-            l.id_saga,
-            a.nombre || ' ' || a.apellido,
-            c.tipo
-        FROM libro l
-        JOIN autor a
-            ON l.id_autor = a.id_autor
-        JOIN categoria c
-            ON l.id_categoria = c.id_categoria
-        ORDER BY l.id_libro
-    """)
-
-    libros = cur.fetchall()
-
-    cur.close()
-    conn.close()
-
-    return libros
+from modulos._theme import *
 
 def abrir_libros():
+    win = tk.Toplevel()
+    win.title("Gestión de Libros"); win.geometry("1200x700"); win.configure(bg=BG)
+    header(win, "LIBROS", "Catálogo completo · Agregar · Editar · Eliminar")
 
-    ventana_libros = tk.Toplevel()
+    form = tk.Frame(win, bg=PANEL, pady=12, padx=10)
+    form.pack(fill="x", padx=20, pady=10)
+    lbl(form,"Título",0,0);          e_titulo  = entry(form,0,1,30)
+    lbl(form,"Precio",1,0);          e_precio  = entry(form,1,1,14)
+    lbl(form,"Año Publicación",2,0); e_anio    = entry(form,2,1,10)
+    lbl(form,"Estante",3,0);         e_estante = entry(form,3,1,10)
 
-    ventana_libros.title("Libros")
-    ventana_libros.geometry("1200x700")
-
-    tk.Label(
-        ventana_libros,
-        text="Gestión de Libros",
-        font=("Arial", 16)
-    ).pack(pady=10)
-
-    #Formulario
-    frame_form = tk.Frame(ventana_libros)
-    frame_form.pack(pady=10)
-
-    tk.Label(frame_form, text="Título").grid(row=0, column=0)
-
-    entry_titulo = tk.Entry(frame_form, width=30)
-    entry_titulo.grid(row=0, column=1)
-
-    tk.Label(frame_form, text="Precio").grid(row=1, column=0)
-
-    entry_precio = tk.Entry(frame_form)
-    entry_precio.grid(row=1, column=1)
-
-    tk.Label(frame_form, text="Año Publicación").grid(row=2, column=0)
-
-    entry_anio = tk.Entry(frame_form)
-    entry_anio.grid(row=2, column=1)
-
-    tk.Label(frame_form, text="Estante").grid(row=3, column=0)
-
-    entry_estante = tk.Entry(frame_form)
-    entry_estante.grid(row=3, column=1)
-
-    tk.Label(frame_form, text="Autor").grid(row=0, column=2)
-
-    combo_autor = ttk.Combobox(
-        frame_form,
-        width=30
-    )
-
-    combo_autor.grid(row=0, column=3)
-
-    autores = obtener_autores()
-
-    combo_autor["values"] = [
-        f"{autor[0]} - {autor[1]} {autor[2]}"
-        for autor in autores
-    ]
-
-    #Categoria
-    tk.Label(frame_form, text="Categoría").grid(row=1, column=2)
-
-    combo_categoria = ttk.Combobox(
-        frame_form,
-        width=30
-    )
-
-    combo_categoria.grid(row=1, column=3)
-
-    categorias = obtener_categorias()
-
-    combo_categoria["values"] = [
-        f"{categoria[0]} - {categoria[1]}"
-        for categoria in categorias
-    ]
-
-    #Editorial
-    tk.Label(frame_form, text="Editorial").grid(row=2, column=2)
-
-    combo_editorial = ttk.Combobox(
-        frame_form,
-        width=30
-    )
-
-    combo_editorial.grid(row=2, column=3)
-
+    autores     = obtener_autores()
+    categorias  = obtener_categorias()
     editoriales = obtener_editoriales()
+    sagas       = obtener_sagas()
 
-    combo_editorial["values"] = [
-        f"{editorial[0]} - {editorial[1]}"
-        for editorial in editoriales
-    ]
+    lbl(form,"Autor",0,2)
+    cb_autor = combo(form,[f"{a[0]} - {a[1]} {a[2]}" for a in autores])
+    cb_autor.grid(row=0,column=3,padx=8,pady=4)
 
-    #Saga
-    tk.Label(frame_form, text="Saga").grid(row=3, column=2)
+    lbl(form,"Categoría",1,2)
+    cb_cat = combo(form,[f"{c[0]} - {c[1]}" for c in categorias])
+    cb_cat.grid(row=1,column=3,padx=8,pady=4)
 
-    combo_saga = ttk.Combobox(
-        frame_form,
-        width=30
-    )
+    lbl(form,"Editorial",2,2)
+    cb_ed = combo(form,[f"{e[0]} - {e[1]}" for e in editoriales])
+    cb_ed.grid(row=2,column=3,padx=8,pady=4)
 
-    combo_saga.grid(row=3, column=3)
+    lbl(form,"Saga",3,2)
+    cb_saga = combo(form,[f"{s[0]} - {s[1]}" for s in sagas])
+    cb_saga.grid(row=3,column=3,padx=8,pady=4)
 
-    sagas = obtener_sagas()
+    libro_sel = [None]
 
-    combo_saga["values"] = [
-        f"{saga[0]} - {saga[1]}"
-        for saga in sagas
-    ]
+    def limpiar():
+        for e in [e_titulo,e_precio,e_anio,e_estante]: e.delete(0,tk.END)
+        for cb in [cb_autor,cb_cat,cb_ed,cb_saga]: cb.set("")
+        libro_sel[0] = None
 
-    libro_seleccionado = None
-    datos_libro = None
+    tabla = scrollable_table(win,("ID","Título","Precio","Año","Autor","Categoría"),
+                             [55,280,90,60,200,120],height=11,name="Lib")
 
-    #Tabla
-    tabla = ttk.Treeview(
-        ventana_libros,
-        columns=(
-            "ID",
-            "Titulo",
-            "Precio",
-            "Autor",
-            "Categoria"
-        ),
-        show="headings"
-    )
+    def cargar():
+        for r in tabla.get_children(): tabla.delete(r)
+        for lb in obtener_libros():
+            tabla.insert("","end",values=(lb[0],lb[1],lb[2],lb[3],lb[9],lb[10]))
 
-    tabla.heading("ID", text="ID")
-    tabla.heading("Titulo", text="Título")
-    tabla.heading("Precio", text="Precio")
-    tabla.heading("Autor", text="Autor")
-    tabla.heading("Categoria", text="Categoría")
+    def seleccionar(event):
+        sel = tabla.selection()
+        if not sel: return
+        id_lb = tabla.item(sel[0])["values"][0]
+        datos = next((l for l in obtener_libros() if l[0]==id_lb),None)
+        if not datos: return
+        libro_sel[0]=datos[0]
+        e_titulo.delete(0,tk.END);  e_titulo.insert(0,datos[1])
+        e_precio.delete(0,tk.END);  e_precio.insert(0,datos[2])
+        e_anio.delete(0,tk.END);    e_anio.insert(0,datos[3])
+        e_estante.delete(0,tk.END); e_estante.insert(0,datos[4])
+        for a in autores:
+            if a[0]==datos[5]: cb_autor.set(f"{a[0]} - {a[1]} {a[2]}"); break
+        for c in categorias:
+            if c[0]==datos[6]: cb_cat.set(f"{c[0]} - {c[1]}"); break
+        for e in editoriales:
+            if e[0]==datos[7]: cb_ed.set(f"{e[0]} - {e[1]}"); break
+        for s in sagas:
+            if s[0]==datos[8]: cb_saga.set(f"{s[0]} - {s[1]}"); break
 
-    tabla.pack(
-        fill="both",
-        expand=True,
-        pady=10
-    )
-
-    def seleccionar_libro(event):
-
-        nonlocal libro_seleccionado
-        nonlocal datos_libro
-
-        seleccion = tabla.selection()
-
-        if not seleccion:
-            return
-
-        id_libro = tabla.item(
-            seleccion[0]
-        )["values"][0]
-
-        libros = obtener_libros()
-
-        datos_libro = next(
-            libro for libro in libros
-            if libro[0] == id_libro
-        )
-
-        libro_seleccionado = datos_libro[0]
-
-        entry_titulo.delete(0, tk.END)
-        entry_precio.delete(0, tk.END)
-        entry_anio.delete(0, tk.END)
-        entry_estante.delete(0, tk.END)
-
-        entry_titulo.insert(0, datos_libro[1])
-        entry_precio.insert(0, datos_libro[2])
-        entry_anio.insert(0, datos_libro[3])
-        entry_estante.insert(0, datos_libro[4])
-
-        # Autor
-        for autor in autores:
-            if autor[0] == datos_libro[5]:
-                combo_autor.set(
-                    f"{autor[0]} - {autor[1]} {autor[2]}"
-                )
-                break
-
-        # Categoría
-        for categoria in categorias:
-            if categoria[0] == datos_libro[6]:
-                combo_categoria.set(
-                    f"{categoria[0]} - {categoria[1]}"
-                )
-                break
-
-        # Editorial
-        for editorial in editoriales:
-            if editorial[0] == datos_libro[7]:
-                combo_editorial.set(
-                    f"{editorial[0]} - {editorial[1]}"
-                )
-                break
-
-        # Saga
-        for saga in sagas:
-            if saga[0] == datos_libro[8]:
-                combo_saga.set(
-                    f"{saga[0]} - {saga[1]}"
-                )
-                break
-    
-    tabla.bind(
-        "<<TreeviewSelect>>",
-        seleccionar_libro
-    )
-
-    def cargar_libros():
-
-        for fila in tabla.get_children():
-            tabla.delete(fila)
-
-        libros = obtener_libros()
-
-        for libro in libros:
-
-            tabla.insert(
-                "",
-                "end",
-                values=(
-                    libro[0],   # ID
-                    libro[1],   # Titulo
-                    libro[2],   # Precio
-                    libro[9],   # Autor
-                    libro[10]   # Categoria
-                )
-            )
+    tabla.bind("<<TreeviewSelect>>",seleccionar)
 
     def guardar():
-
-        id_autor = int(
-            combo_autor.get().split(" - ")[0]
-        )
-
-        id_categoria = int(
-            combo_categoria.get().split(" - ")[0]
-        )
-
-        id_editorial = int(
-            combo_editorial.get().split(" - ")[0]
-        )
-
-        id_saga = int(
-            combo_saga.get().split(" - ")[0]
-        )
-
-        guardar_libro(
-            entry_titulo.get(),
-            float(entry_precio.get()),
-            id_autor,
-            id_categoria,
-            id_editorial,
-            id_saga,
-            int(entry_anio.get()),
-            entry_estante.get()
-        )
-
-        cargar_libros()
-
-        entry_titulo.delete(0, tk.END)
-        entry_precio.delete(0, tk.END)
-        entry_anio.delete(0, tk.END)
-        entry_estante.delete(0, tk.END)
-
-        combo_autor.set("")
-        combo_categoria.set("")
-        combo_editorial.set("")
-        combo_saga.set("")
-
-    tk.Button(
-        ventana_libros,
-        text="Guardar Libro",
-        command=guardar
-    ).pack(pady=10)
-
-    cargar_libros()
+        try:
+            id_autor=int(cb_autor.get().split(" - ")[0]); id_cat=int(cb_cat.get().split(" - ")[0])
+            id_ed=int(cb_ed.get().split(" - ")[0]);       id_saga=int(cb_saga.get().split(" - ")[0])
+        except:
+            messagebox.showwarning("Faltan datos","Completa todos los campos.",parent=win); return
+        if guardar_libro(e_titulo.get(),float(e_precio.get()),id_autor,id_cat,id_ed,id_saga,int(e_anio.get()),e_estante.get()):
+            cargar(); limpiar()
 
     def editar():
-
-        if libro_seleccionado is None:
-            return
-
-        actualizar_libro(
-            libro_seleccionado,
-            entry_titulo.get(),
-            float(entry_precio.get())
-        )
-
-        cargar_libros()
-    
-    tk.Button(
-        ventana_libros,
-        text="Editar Libro",
-        command=editar
-    ).pack(pady=5)
+        if not libro_sel[0]:
+            messagebox.showwarning("Sin selección","Selecciona un libro.",parent=win); return
+        if actualizar_libro(libro_sel[0],e_titulo.get(),float(e_precio.get())):
+            cargar(); messagebox.showinfo("","Libro actualizado.",parent=win)
 
     def eliminar():
+        sel = tabla.selection()
+        if not sel:
+            messagebox.showwarning("Sin selección","Selecciona un libro.",parent=win); return
+        v = tabla.item(sel[0])["values"]
+        if messagebox.askyesno("Confirmar",f"¿Eliminar '{v[1]}'?",parent=win):
+            if eliminar_libro(v[0]): cargar(); limpiar()
 
-        seleccion = tabla.selection()
+    bf = tk.Frame(win,bg=BG); bf.pack(pady=10)
+    btn(bf,"+ Guardar",  guardar,  ACCENT).pack(side="left",padx=6)
+    btn(bf,"Actualizar",editar,   BLUE).pack(side="left",padx=6)
+    btn(bf,"x Eliminar",  eliminar, RED).pack(side="left",padx=6)
+    btn(bf,"Limpiar",   limpiar,  SUBTEXT,12).pack(side="left",padx=6)
+    cargar()
 
-        if not seleccion:
-            return
+def obtener_autores():
+    conn=conectar(); cur=conn.cursor()
+    cur.execute("SELECT id_autor,nombre,apellido FROM autor ORDER BY nombre")
+    r=cur.fetchall(); cur.close(); conn.close(); return r
 
-        valores = tabla.item(
-            seleccion[0]
-        )["values"]
+def obtener_categorias():
+    conn=conectar(); cur=conn.cursor()
+    cur.execute("SELECT id_categoria,tipo FROM categoria ORDER BY tipo")
+    r=cur.fetchall(); cur.close(); conn.close(); return r
 
-        id_libro = valores[0]
+def obtener_editoriales():
+    conn=conectar(); cur=conn.cursor()
+    cur.execute("SELECT id_editorial,nombre FROM editorial ORDER BY nombre")
+    r=cur.fetchall(); cur.close(); conn.close(); return r
 
-        eliminar_libro(id_libro)
+def obtener_sagas():
+    conn=conectar(); cur=conn.cursor()
+    cur.execute("SELECT id_saga,nombre FROM sagas ORDER BY nombre")
+    r=cur.fetchall(); cur.close(); conn.close(); return r
 
-        cargar_libros()
+def guardar_libro(titulo,precio,id_autor,id_categoria,id_editorial,id_saga,anio,estante):
+    try:
+        conn=conectar(); cur=conn.cursor()
+        cur.execute("INSERT INTO producto(nombre,precio) VALUES(%s,%s) RETURNING id_producto",(titulo,precio))
+        id_producto=cur.fetchone()[0]
+        cur.execute("INSERT INTO libro(id_autor,id_categoria,id_editorial,id_saga,titulo,anio_publicacion,precio,estante,id_producto) VALUES(%s,%s,%s,%s,%s,%s,%s,%s,%s)",
+                    (id_autor,id_categoria,id_editorial,id_saga,titulo,anio,precio,estante,id_producto))
+        conn.commit(); cur.close(); conn.close(); return True
+    except Exception as e:
+        conn.rollback(); messagebox.showerror("Error",str(e)); return False
 
-    tk.Button(
-        ventana_libros,
-        text="Eliminar Libro",
-        command=eliminar
-    ).pack(pady=5)
-
+def obtener_libros():
+    conn=conectar(); cur=conn.cursor()
+    cur.execute("""SELECT l.id_libro,l.titulo,l.precio,l.anio_publicacion,l.estante,
+                   l.id_autor,l.id_categoria,l.id_editorial,l.id_saga,
+                   a.nombre||' '||a.apellido,c.tipo
+                   FROM libro l JOIN autor a ON l.id_autor=a.id_autor
+                   JOIN categoria c ON l.id_categoria=c.id_categoria ORDER BY l.id_libro""")
+    r=cur.fetchall(); cur.close(); conn.close(); return r
 
 def actualizar_libro(id_libro,titulo,precio):
-
-    conn = conectar()
-    cur = conn.cursor()
-
-    cur.execute("""
-        UPDATE libro
-        SET titulo = %s,
-            precio = %s
-        WHERE id_libro = %s
-    """, (
-        titulo,
-        precio,
-        id_libro
-    ))
-
-    conn.commit()
-
-    cur.close()
-    conn.close()
+    try:
+        conn=conectar(); cur=conn.cursor()
+        cur.execute("UPDATE libro SET titulo=%s,precio=%s WHERE id_libro=%s",(titulo,precio,id_libro))
+        conn.commit(); cur.close(); conn.close(); return True
+    except Exception as e:
+        conn.rollback(); messagebox.showerror("Error",str(e)); return False
 
 def eliminar_libro(id_libro):
-
-    conn = conectar()
-    cur = conn.cursor()
-
-    cur.execute("""
-        DELETE FROM libro
-        WHERE id_libro = %s
-    """, (id_libro,))
-
-    conn.commit()
-
-    cur.close()
-    conn.close()
+    try:
+        conn=conectar(); cur=conn.cursor()
+        cur.execute("DELETE FROM libro WHERE id_libro=%s",(id_libro,))
+        conn.commit(); cur.close(); conn.close(); return True
+    except Exception as e:
+        conn.rollback(); messagebox.showerror("Error",f"No se puede eliminar: {e}"); return False

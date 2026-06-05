@@ -1,235 +1,87 @@
 import tkinter as tk
-from tkinter import ttk
+from tkinter import ttk, messagebox
 from database import conectar
+from modulos._theme import *
 
 def abrir_autores():
+    win = tk.Toplevel()
+    win.title("Gestión de Autores"); win.geometry("950x580"); win.configure(bg=BG)
+    header(win,"AUTORES","Agregar · Editar · Eliminar")
 
-    ventana_autores = tk.Toplevel()
+    form = tk.Frame(win,bg=PANEL,pady=12,padx=10); form.pack(fill="x",padx=20,pady=10)
+    lbl(form,"Nombre",0,0);        e_nombre       = entry(form,0,1)
+    lbl(form,"Apellido",0,2);      e_apellido     = entry(form,0,3)
+    lbl(form,"Nacionalidad",1,0);  e_nacionalidad = entry(form,1,1)
 
-    ventana_autores.title("Autores")
-    ventana_autores.geometry("1100x600")
+    sel = [None]
+    def limpiar():
+        for e in [e_nombre,e_apellido,e_nacionalidad]: e.delete(0,tk.END)
+        sel[0]=None
 
-    tk.Label(
-        ventana_autores,
-        text="Gestión de Autores",
-        font=("Arial", 16)
-    ).pack(pady=10)
+    tabla = scrollable_table(win,("ID","Nombre","Apellido","Nacionalidad"),[60,200,200,200],name="Aut")
 
-    #Formulario
-    frame_form = tk.Frame(ventana_autores)
-    frame_form.pack(pady=10)
+    def cargar():
+        for r in tabla.get_children(): tabla.delete(r)
+        for a in obtener_Autores(): tabla.insert("","end",values=a)
 
-    tk.Label(frame_form, text="Nombre").grid(row=0, column=0)
+    def seleccionar(event):
+        s=tabla.selection()
+        if not s: return
+        v=tabla.item(s[0])["values"]; sel[0]=v[0]
+        e_nombre.delete(0,tk.END);       e_nombre.insert(0,v[1])
+        e_apellido.delete(0,tk.END);     e_apellido.insert(0,v[2])
+        e_nacionalidad.delete(0,tk.END); e_nacionalidad.insert(0,v[3])
 
-    entry_nombre = tk.Entry(frame_form)
-    entry_nombre.grid(row=0, column=1)
-
-    tk.Label(frame_form, text="Apellido").grid(row=1, column=0)
-
-    entry_apellido = tk.Entry(frame_form)
-    entry_apellido.grid(row=1, column=1)
-
-    tk.Label(frame_form, text="Nacionalidad").grid(row=2, column=0)
-
-    entry_nacionalidad = tk.Entry(frame_form)
-    entry_nacionalidad.grid(row=2, column=1)
-
-    autor_seleccionado = None
-
-    #CRUD Autores
-    def cargar_Autores():
-
-        for fila in tabla.get_children():
-            tabla.delete(fila)
-
-        Autores = obtener_Autores()
-
-        for autor in Autores:
-            tabla.insert("", "end", values=autor)
-
-    def seleccionar_autor(event):
-
-        nonlocal autor_seleccionado
-
-        seleccion = tabla.selection()
-
-        if not seleccion:
-            return
-
-        valores = tabla.item(seleccion[0])["values"]
-
-        autor_seleccionado = valores[0]
-
-        entry_nombre.delete(0, tk.END)
-        entry_apellido.delete(0, tk.END)
-        entry_nacionalidad.delete(0, tk.END)
-
-        entry_nombre.insert(0, valores[1])
-        entry_apellido.insert(0, valores[2])
-        entry_nacionalidad.insert(0, valores[3])
+    tabla.bind("<<TreeviewSelect>>",seleccionar)
 
     def guardar():
+        if not e_nombre.get():
+            messagebox.showwarning("Faltan datos","El nombre es obligatorio.",parent=win); return
+        guardar_autor(e_nombre.get(),e_apellido.get(),e_nacionalidad.get()); cargar(); limpiar()
 
-        nombre = entry_nombre.get()
-        apellido = entry_apellido.get()
-        nacionalidad = entry_nacionalidad.get()
-
-        guardar_autor(
-            nombre,
-            apellido,
-            nacionalidad
-        )
-
-        cargar_Autores()
-
-        entry_nombre.delete(0, tk.END)
-        entry_apellido.delete(0, tk.END)
-        entry_nacionalidad.delete(0, tk.END)
-
-        print("Autor guardado")
-        
     def editar():
-
-        if autor_seleccionado is None:
-            return
-
-        actualizar_autor(
-            autor_seleccionado,
-            entry_nombre.get(),
-            entry_apellido.get(),
-            entry_nacionalidad.get(),
-        )
-
-        cargar_Autores()
+        if not sel[0]:
+            messagebox.showwarning("Sin selección","Selecciona un autor.",parent=win); return
+        actualizar_autor(sel[0],e_nombre.get(),e_apellido.get(),e_nacionalidad.get())
+        cargar(); messagebox.showinfo("","Autor actualizado.",parent=win)
 
     def eliminar():
+        s=tabla.selection()
+        if not s:
+            messagebox.showwarning("Sin selección","Selecciona un autor.",parent=win); return
+        v=tabla.item(s[0])["values"]
+        if messagebox.askyesno("Confirmar",f"¿Eliminar a {v[1]} {v[2]}?",parent=win):
+            eliminar_autor(v[0]); cargar(); limpiar()
 
-        seleccion = tabla.selection()
+    bf = tk.Frame(win,bg=BG); bf.pack(pady=10)
+    btn(bf,"+ Guardar",  guardar,  ACCENT).pack(side="left",padx=6)
+    btn(bf,"Actualizar",editar,   BLUE).pack(side="left",padx=6)
+    btn(bf,"x Eliminar",  eliminar, RED).pack(side="left",padx=6)
+    btn(bf,"Limpiar",   limpiar,  SUBTEXT,12).pack(side="left",padx=6)
+    cargar()
 
-        if not seleccion:
-            return
-
-        valores = tabla.item(seleccion[0])["values"]
-
-        id_autor = valores[0]
-
-        eliminar_autor(id_autor)
-
-        cargar_Autores()
-
-    tk.Button(
-        ventana_autores,
-        text="Guardar Autor",
-        command=guardar
-    ).pack(pady=10)
-
-    #Tabla de Autores
-    tabla = ttk.Treeview(
-        ventana_autores,
-        columns=("ID", "Nombre", "Apellido", "Nacionalidad"),
-        show="headings"
-    )
-
-    tabla.heading("ID", text="ID")
-    tabla.heading("Nombre", text="Nombre")
-    tabla.heading("Apellido", text="Apellido")
-    tabla.heading("Nacionalidad", text="Nacionalidad")
-
-    tabla.pack(fill="both", expand=True)
-
-    tabla.bind(
-        "<<TreeviewSelect>>",
-        seleccionar_autor
-    )
-
-    def cargar_Autores():
-
-        for fila in tabla.get_children():
-            tabla.delete(fila)
-
-        Autores = obtener_Autores()
-
-        for autor in Autores:
-            tabla.insert("", "end", values=autor)
-
-    cargar_Autores()
-    
-    tk.Button(
-        ventana_autores,
-        text="Eliminar Autor",
-        command=eliminar
-    ).pack(pady=5)
-
-    tk.Button(
-        ventana_autores,
-        text="Actualizar Autor",
-        command=editar
-    ).pack(pady=5)
-
-
-#CRUD Autores SQL
-def guardar_autor(nombre,apellido, nacionalidad):
-
-    conn = conectar()
-    cur = conn.cursor()
-
-    cur.execute("""
-        INSERT INTO autor(nombre, apellido, nacionalidad)
-        VALUES (%s, %s, %s)
-    """, (nombre, apellido, nacionalidad,))
-
-    conn.commit()
-
-    cur.close()
-    conn.close()
+def guardar_autor(nombre,apellido,nacionalidad):
+    conn=conectar(); cur=conn.cursor()
+    cur.execute("INSERT INTO autor(nombre,apellido,nacionalidad) VALUES(%s,%s,%s)",(nombre,apellido,nacionalidad))
+    conn.commit(); cur.close(); conn.close()
 
 def obtener_Autores():
-
-    conn = conectar()
-    cur = conn.cursor()
-
-    cur.execute("""
-        SELECT id_autor, nombre, apellido, nacionalidad
-        FROM autor
-        ORDER BY id_autor
-    """)
-
-    Autores = cur.fetchall()
-
-    cur.close()
-    conn.close()
-
-    return Autores
+    conn=conectar(); cur=conn.cursor()
+    cur.execute("SELECT id_autor,nombre,apellido,nacionalidad FROM autor ORDER BY id_autor")
+    r=cur.fetchall(); cur.close(); conn.close(); return r
 
 def eliminar_autor(id_autor):
+    try:
+        conn=conectar(); cur=conn.cursor()
+        cur.execute("DELETE FROM autor WHERE id_autor=%s",(id_autor,))
+        conn.commit(); cur.close(); conn.close()
+    except Exception as e:
+        conn.rollback(); messagebox.showerror("Error",str(e))
 
-    conn = conectar()
-    cur = conn.cursor()
-
-    cur.execute("""
-        DELETE FROM autor
-        WHERE id_autor = %s
-    """, (id_autor))
-
-    conn.commit()
-
-    cur.close()
-    conn.close()
-
-def actualizar_autor(id_autor, nombre, apellido, nacionalidad):
-
-    conn = conectar()
-    cur = conn.cursor()
-
-    cur.execute("""
-        UPDATE autor
-        SET nombre = %s,
-            apellido = %s,
-            nacionalidad = %s,
-        WHERE id_autor = %s
-    """, (nombre, apellido, nacionalidad, id_autor))
-
-    conn.commit()
-
-    cur.close()
-    conn.close()
+def actualizar_autor(id_autor,nombre,apellido,nacionalidad):
+    try:
+        conn=conectar(); cur=conn.cursor()
+        cur.execute("UPDATE autor SET nombre=%s,apellido=%s,nacionalidad=%s WHERE id_autor=%s",(nombre,apellido,nacionalidad,id_autor))
+        conn.commit(); cur.close(); conn.close()
+    except Exception as e:
+        conn.rollback(); messagebox.showerror("Error",str(e))

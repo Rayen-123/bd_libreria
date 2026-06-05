@@ -1,483 +1,143 @@
-from database import conectar
 import tkinter as tk
-from tkinter import ttk
-from tkinter import messagebox
-
-def obtener_clientes():
-
-    conn = conectar()
-    cur = conn.cursor()
-
-    cur.execute("""
-        SELECT id_cliente, nombre, apellido
-        FROM cliente
-        ORDER BY nombre
-    """)
-
-    clientes = cur.fetchall()
-
-    cur.close()
-    conn.close()
-
-    return clientes
-
-def obtener_productos():
-
-    conn = conectar()
-    cur = conn.cursor()
-
-    cur.execute("""
-        SELECT id_producto, nombre, precio
-        FROM producto
-        ORDER BY nombre
-    """)
-
-    productos = cur.fetchall()
-
-    cur.close()
-    conn.close()
-
-    return productos
-
-def obtener_sucursales():
-
-    conn = conectar()
-    cur = conn.cursor()
-
-    cur.execute("""
-        SELECT id_sucursal, nombre
-        FROM sucursal
-        ORDER BY nombre
-    """)
-
-    sucursales = cur.fetchall()
-
-    cur.close()
-    conn.close()
-
-    return sucursales
-
-def obtener_cajeros():
-
-    conn = conectar()
-    cur = conn.cursor()
-
-    cur.execute("""
-        SELECT
-            c.id_cajero,
-            e.nombre,
-            e.apellido
-        FROM cajero c
-        JOIN empleado e
-            ON c.id_empleado = e.id_empleado
-        ORDER BY e.nombre
-    """)
-
-    cajeros = cur.fetchall()
-
-    cur.close()
-    conn.close()
-
-    return cajeros
-
-def obtener_cajas():
-
-    conn = conectar()
-    cur = conn.cursor()
-
-    cur.execute("""
-        SELECT
-            id_caja,
-            numero_caja
-        FROM caja
-        ORDER BY numero_caja
-    """)
-
-    cajas = cur.fetchall()
-
-    cur.close()
-    conn.close()
-
-    return cajas
-
-#CRUD SQL Venta
-def crear_venta(id_cliente, id_caja, id_cajero):
-
-    conn = conectar()
-    cur = conn.cursor()
-
-    cur.execute("""
-        INSERT INTO venta(
-            fecha_hora,
-            total,
-            id_cliente,
-            id_caja,
-            id_cajero
-        )
-        VALUES(
-            NOW(),
-            0,
-            %s,
-            %s,
-            %s
-        )
-        RETURNING id_venta
-    """, (
-        id_cliente,
-        id_caja,
-        id_cajero
-    ))
-
-    id_venta = cur.fetchone()[0]
-
-    conn.commit()
-
-    cur.close()
-    conn.close()
-
-    return id_venta
-    
-def agregar_detalle(id_venta, id_producto,cantidad,precio):
-
-    conn = conectar()
-    cur = conn.cursor()
-
-    subtotal = cantidad * precio
-
-    cur.execute("""
-        INSERT INTO detalleventa(
-            id_venta,
-            id_producto,
-            cantidad,
-            precio_unitario,
-            subtotal
-        )
-        VALUES(
-            %s,
-            %s,
-            %s,
-            %s,
-            %s
-        )
-    """, (id_venta,id_producto,cantidad,precio,subtotal))
-
-    conn.commit()
-
-    cur.close()
-    conn.close()
-
-    return subtotal
-    
-def actualizar_total(id_venta, total):
-
-    conn = conectar()
-    cur = conn.cursor()
-
-    cur.execute("""
-        UPDATE venta
-        SET total = %s
-        WHERE id_venta = %s
-    """, (
-        total,
-        id_venta
-    ))
-
-    conn.commit()
-
-    cur.close()
-    conn.close()
-
+from tkinter import ttk, messagebox
+from database import conectar
+from modulos._theme import *
 
 def abrir_ventas():
+    win = tk.Toplevel()
+    win.title("Nueva Venta"); win.geometry("900x660"); win.configure(bg=BG)
+    header(win, "NUEVA VENTA", "Agrega productos y finaliza la venta")
 
-    ventana = tk.Toplevel()
+    clientes  = obtener_clientes()
+    cajeros   = obtener_cajeros()
+    cajas     = obtener_cajas()
+    sucursales= obtener_sucursales()
+    productos = obtener_productos()
 
-    ventana.title("Ventas")
-    ventana.geometry("900x700")
+    top = tk.Frame(win,bg=PANEL,pady=10,padx=20); top.pack(fill="x",padx=20,pady=8)
+
+    def lbl2(p,t,r,c): tk.Label(p,text=t,font=("Courier New",10),bg=PANEL,fg=SUBTEXT).grid(row=r,column=c,sticky="w",padx=8,pady=3)
+
+    lbl2(top,"Cliente",0,0)
+    cb_cliente = combo(top,[f"{c[0]} - {c[1]} {c[2]}" for c in clientes],38)
+    cb_cliente.grid(row=0,column=1,padx=8,pady=3)
+    lbl2(top,"Cajero",0,2)
+    cb_cajero = combo(top,[f"{c[0]} - {c[1]}" for c in cajeros],28)
+    cb_cajero.grid(row=0,column=3,padx=8,pady=3)
+    lbl2(top,"Caja",1,0)
+    cb_caja = combo(top,[f"{c[0]} - Caja {c[1]}" for c in cajas],20)
+    cb_caja.grid(row=1,column=1,padx=8,pady=3)
+    lbl2(top,"Sucursal",1,2)
+    cb_suc = combo(top,[f"{s[0]} - {s[1]}" for s in sucursales],28)
+    cb_suc.grid(row=1,column=3,padx=8,pady=3)
+
+    mid = tk.Frame(win,bg=PANEL,pady=10,padx=20); mid.pack(fill="x",padx=20,pady=2)
+    lbl2(mid,"Producto",0,0)
+    cb_prod = combo(mid,[f"{p[0]} - {p[1]}" for p in productos],40)
+    cb_prod.grid(row=0,column=1,padx=8,pady=3)
+    lbl2(mid,"Cantidad",0,2)
+    e_cant = tk.Entry(mid,font=("Courier New",11),bg=BG,fg=TEXT,insertbackground=ACCENT,
+                      relief="flat",bd=0,width=8,highlightthickness=1,
+                      highlightbackground=SUBTEXT,highlightcolor=ACCENT)
+    e_cant.grid(row=0,column=3,padx=8,pady=3,ipady=5); e_cant.insert(0,"1")
+
+    tabla = scrollable_table(win,("Producto","Precio Unit.","Cantidad","Subtotal"),
+                             [360,130,100,130],height=8,name="VtaN",accent=BLUE)
+
+    tf = tk.Frame(win,bg=BG); tf.pack(fill="x",padx=24)
+    tk.Label(tf,text="TOTAL:",font=("Courier New",12,"bold"),bg=BG,fg=SUBTEXT).pack(side="left")
+    lbl_total = tk.Label(tf,text="$ 0",font=("Georgia",15,"bold"),bg=BG,fg=ACCENT)
+    lbl_total.pack(side="left",padx=10)
 
     detalle_venta = []
 
-    #Cliente
-    tk.Label(
-        ventana,
-        text="Cliente"
-    ).pack()
-
-    combo_cliente = ttk.Combobox(
-        ventana,
-        width=40
-    )
-
-    combo_cliente.pack(pady=5)
-
-    clientes = obtener_clientes()
-
-    combo_cliente["values"] = [
-        f"{cliente[0]} - {cliente[1]} {cliente[2]}"
-        for cliente in clientes
-    ]
-
-    #Cajero
-    tk.Label(
-        ventana,
-        text="Cajero"
-    ).pack()
-
-    combo_cajero = ttk.Combobox(
-        ventana,
-        width=40
-    )
-
-    combo_cajero.pack(pady=5)
-
-    cajeros = obtener_cajeros()
-
-    combo_cajero["values"] = [
-        f"{cajero[0]} - {cajero[1]}"
-        for cajero in cajeros
-    ]
-
-    #Caja
-    tk.Label(
-        ventana,
-        text="Caja"
-    ).pack()
-
-    combo_caja = ttk.Combobox(
-        ventana,
-        width=40
-    )
-
-    combo_caja.pack(pady=5)
-
-    cajas = obtener_cajas()
-
-    combo_caja["values"] = [
-        f"{caja[0]} - Caja {caja[1]}"
-        for caja in cajas
-    ]
-
-    #Sucursal
-    tk.Label(
-        ventana,
-        text="Sucursal"
-    ).pack()
-
-    combo_sucursal = ttk.Combobox(
-        ventana,
-        width=40
-    )
-
-    combo_sucursal.pack(pady=5)
-
-    sucursales = obtener_sucursales()
-
-    combo_sucursal["values"] = [
-        f"{s[0]} - {s[1]}"
-        for s in sucursales
-    ]
-
-    #Producto
-    tk.Label(
-        ventana,
-        text="Producto"
-    ).pack()
-
-    combo_producto = ttk.Combobox(
-        ventana,
-        width=40
-    )
-
-    combo_producto.pack(pady=5)
-
-    productos = obtener_productos()
-
-    combo_producto["values"] = [
-        f"{producto[0]} - {producto[1]}"
-        for producto in productos
-    ]
-
-    tk.Label(
-        ventana,
-        text="Cantidad"
-    ).pack()
-
-    entry_cantidad = tk.Entry(ventana)
-
-    entry_cantidad.pack(pady=5)
-
-    tabla_detalle = ttk.Treeview(
-        ventana,
-        columns=(
-            "Producto",
-            "Cantidad",
-            "Precio",
-            "Subtotal"
-        ),
-        show="headings"
-    )
-
-    tabla_detalle.heading("Producto", text="Producto")
-    tabla_detalle.heading("Cantidad", text="Cantidad")
-    tabla_detalle.heading("Precio", text="Precio")
-    tabla_detalle.heading("Subtotal", text="Subtotal")
-
-    tabla_detalle.pack(
-        fill="both",
-        expand=True,
-        pady=10
-    )
-
-    def cargar_detalle():
-
-        for fila in tabla_detalle.get_children():
-            tabla_detalle.delete(fila)
-
+    def refrescar():
+        for r in tabla.get_children(): tabla.delete(r)
         for item in detalle_venta:
-
-            tabla_detalle.insert(
-                "",
-                "end",
-                values=(
-                    item["nombre"],
-                    item["cantidad"],
-                    item["precio"],
-                    item["subtotal"]
-                )
-            )
+            tabla.insert("","end",values=(item["nombre"],f"$ {item['precio']:,.0f}",item["cantidad"],f"$ {item['subtotal']:,.0f}"))
+        lbl_total.config(text=f"$ {sum(i['subtotal'] for i in detalle_venta):,.0f}")
 
     def agregar_producto():
-
-        id_producto = int(
-            combo_producto.get().split(" - ")[0]
-        )
-
-        cantidad = int(
-            entry_cantidad.get()
-        )
-
-        producto = next(
-            p for p in productos
-            if p[0] == id_producto
-        )
-
-        precio = producto[2]
-
-        subtotal = precio * cantidad
-
-        detalle_venta.append({
-            "id_producto": id_producto,
-            "nombre": producto[1],
-            "cantidad": cantidad,
-            "precio": precio,
-            "subtotal": subtotal
-        })
-
-        cargar_detalle()
-
-        entry_cantidad.delete(0, tk.END)
-
-    tk.Button(
-        ventana,
-        text="Agregar Producto",
-        command=agregar_producto
-    ).pack(pady=5)
-
-
-    def mostrar_confirmacion():
-
-        def aceptar():
-
-            combo_cliente.set("")
-            combo_cajero.set("")
-            combo_caja.set("")
-            combo_sucursal.set("")
-            combo_producto.set("")
-
-            entry_cantidad.delete(0, tk.END)
-
-            detalle_venta.clear()
-            cargar_detalle()
-
-            ventana_ok.destroy()
-
-        ventana_ok = tk.Toplevel()
-
-        ventana_ok.title("Venta registrada")
-        ventana_ok.geometry("350x180")
-        ventana_ok.resizable(False, False)
-
-        tk.Label(
-            ventana_ok,
-            text="Venta registrada correctamente",
-            font=("Arial", 12, "bold")
-        ).pack(pady=20)
-
-        frame_botones = tk.Frame(ventana_ok)
-        frame_botones.pack(pady=10)
-
-        tk.Button(
-            frame_botones,
-            text="Aceptar",
-            width=12,
-            command=aceptar
-        ).grid(row=0, column=0, padx=10)
-
-        tk.Button(
-            frame_botones,
-            text="Imprimir Boleta",
-            width=15
-        ).grid(row=0, column=1, padx=10)
-    
-    def registrar():
-
-        if not detalle_venta:
-            print("No hay productos en la venta")
-            return
-
-        id_cliente = int(
-            combo_cliente.get().split(" - ")[0]
-        )
-
-        id_cajero = int(
-            combo_cajero.get().split(" - ")[0]
-        )
-
-        id_caja = int(
-            combo_caja.get().split(" - ")[0]
-        )
-
-        id_venta = crear_venta(
-            id_cliente,
-            id_caja,
-            id_cajero
-        )
-
-        total = 0
-
-
+        try:
+            id_p=int(cb_prod.get().split(" - ")[0]); cant=int(e_cant.get())
+            if cant<=0: raise ValueError
+        except:
+            messagebox.showwarning("Error","Selecciona producto y cantidad válida.",parent=win); return
+        prod=next((p for p in productos if p[0]==id_p),None)
+        if not prod: return
         for item in detalle_venta:
+            if item["id_producto"]==id_p:
+                item["cantidad"]+=cant; item["subtotal"]=item["cantidad"]*item["precio"]; break
+        else:
+            detalle_venta.append({"id_producto":id_p,"nombre":prod[1],"cantidad":cant,"precio":float(prod[2]),"subtotal":cant*float(prod[2])})
+        refrescar(); cb_prod.set(""); e_cant.delete(0,tk.END); e_cant.insert(0,"1")
 
-            agregar_detalle(
-                id_venta,
-                item["id_producto"],
-                item["cantidad"],
-                item["precio"]
-            )
+    def quitar():
+        sel=tabla.selection()
+        if not sel: return
+        detalle_venta.pop(tabla.index(sel[0])); refrescar()
 
-            total += item["subtotal"]
+    def registrar():
+        if not detalle_venta:
+            messagebox.showwarning("Carrito vacío","Agrega al menos un producto.",parent=win); return
+        try:
+            id_cliente=int(cb_cliente.get().split(" - ")[0])
+            id_cajero=int(cb_cajero.get().split(" - ")[0])
+            id_caja=int(cb_caja.get().split(" - ")[0])
+        except:
+            messagebox.showwarning("Faltan datos","Selecciona cliente, cajero y caja.",parent=win); return
+        id_venta=crear_venta(id_cliente,id_caja,id_cajero)
+        total=0
+        for item in detalle_venta:
+            total+=agregar_detalle(id_venta,item["id_producto"],item["cantidad"],item["precio"])
+        actualizar_total(id_venta,total)
+        messagebox.showinfo("Venta registrada",f"Venta #{id_venta} registrada.\nTotal: $ {total:,.0f}",parent=win)
+        detalle_venta.clear(); refrescar()
+        for cb in [cb_cliente,cb_cajero,cb_caja,cb_suc,cb_prod]: cb.set("")
 
-        actualizar_total(
-            id_venta,
-            total
-        )
+    bf = tk.Frame(win,bg=BG); bf.pack(pady=10)
+    btn(bf,"+ Agregar Producto",   agregar_producto, BLUE,22).pack(side="left",padx=6)
+    btn(bf,"x Quitar Seleccionado", quitar,           RED,20).pack(side="left",padx=6)
+    btn(bf,"Registrar Venta",     registrar,        GREEN,20).pack(side="left",padx=6)
 
-        mostrar_confirmacion()
+#  SQL 
+def obtener_clientes():
+    conn=conectar(); cur=conn.cursor()
+    cur.execute("SELECT id_cliente,nombre,apellido FROM cliente ORDER BY nombre")
+    r=cur.fetchall(); cur.close(); conn.close(); return r
 
-    tk.Button(
-        ventana,
-        text="Registrar Venta",
-        command=registrar
-    ).pack(pady=20)
+def obtener_cajeros():
+    conn=conectar(); cur=conn.cursor()
+    cur.execute("SELECT c.id_cajero,e.nombre,e.apellido FROM cajero c JOIN empleado e ON c.id_empleado=e.id_empleado ORDER BY e.nombre")
+    r=cur.fetchall(); cur.close(); conn.close(); return r
 
-    
+def obtener_cajas():
+    conn=conectar(); cur=conn.cursor()
+    cur.execute("SELECT id_caja,numero_caja FROM caja ORDER BY numero_caja")
+    r=cur.fetchall(); cur.close(); conn.close(); return r
+
+def obtener_sucursales():
+    conn=conectar(); cur=conn.cursor()
+    cur.execute("SELECT id_sucursal,nombre FROM sucursal ORDER BY nombre")
+    r=cur.fetchall(); cur.close(); conn.close(); return r
+
+def obtener_productos():
+    conn=conectar(); cur=conn.cursor()
+    cur.execute("SELECT id_producto,nombre,precio FROM producto ORDER BY nombre")
+    r=cur.fetchall(); cur.close(); conn.close(); return r
+
+def crear_venta(id_cliente,id_caja,id_cajero):
+    conn=conectar(); cur=conn.cursor()
+    cur.execute("INSERT INTO venta(fecha_hora,total,id_cliente,id_caja,id_cajero) VALUES(NOW(),0,%s,%s,%s) RETURNING id_venta",(id_cliente,id_caja,id_cajero))
+    id_v=cur.fetchone()[0]; conn.commit(); cur.close(); conn.close(); return id_v
+
+def agregar_detalle(id_venta,id_producto,cantidad,precio):
+    subtotal=cantidad*precio
+    conn=conectar(); cur=conn.cursor()
+    cur.execute("INSERT INTO detalleventa(id_venta,id_producto,cantidad,precio_unitario,subtotal) VALUES(%s,%s,%s,%s,%s)",(id_venta,id_producto,cantidad,precio,subtotal))
+    conn.commit(); cur.close(); conn.close(); return subtotal
+
+def actualizar_total(id_venta,total):
+    conn=conectar(); cur=conn.cursor()
+    cur.execute("UPDATE venta SET total=%s WHERE id_venta=%s",(total,id_venta))
+    conn.commit(); cur.close(); conn.close()

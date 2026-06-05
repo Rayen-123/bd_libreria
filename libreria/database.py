@@ -5,6 +5,6 @@ def conectar():
         host="localhost",
         database="libreria",
         user="postgres",
-        password="2801",
+        password="1896as3030",
         port="5432"
     )

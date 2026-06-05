@@ -1,74 +1,17 @@
 import tkinter as tk
 from tkinter import ttk
 from database import conectar
-
+from modulos._theme import *
 
 def obtener_cajeros():
-
-    conn = conectar()
-    cur = conn.cursor()
-
-    cur.execute("""
-        SELECT
-            c.id_cajero,
-            e.nombre,
-            e.apellido,
-            e.rut
-        FROM cajero c
-        JOIN empleado e
-            ON c.id_empleado = e.id_empleado
-        ORDER BY c.id_cajero
-    """)
-
-    cajeros = cur.fetchall()
-
-    cur.close()
-    conn.close()
-
-    return cajeros
-
+    conn=conectar(); cur=conn.cursor()
+    cur.execute("SELECT c.id_cajero,e.nombre,e.apellido,e.rut FROM cajero c JOIN empleado e ON c.id_empleado=e.id_empleado ORDER BY c.id_cajero")
+    r=cur.fetchall(); cur.close(); conn.close(); return r
 
 def abrir_cajeros():
-
-    ventana = tk.Toplevel()
-
-    ventana.title("Cajeros")
-    ventana.geometry("800x500")
-
-    tk.Label(
-        ventana,
-        text="Listado de Cajeros",
-        font=("Arial", 16)
-    ).pack(pady=10)
-
-    tabla = ttk.Treeview(
-        ventana,
-        columns=(
-            "ID",
-            "Nombre",
-            "Apellido",
-            "RUT"
-        ),
-        show="headings"
-    )
-
-    tabla.heading("ID", text="ID")
-    tabla.heading("Nombre", text="Nombre")
-    tabla.heading("Apellido", text="Apellido")
-    tabla.heading("RUT", text="RUT")
-
-    tabla.pack(
-        fill="both",
-        expand=True,
-        pady=10
-    )
-
-    cajeros = obtener_cajeros()
-
-    for cajero in cajeros:
-
-        tabla.insert(
-            "",
-            "end",
-            values=cajero
-        )
+    win = tk.Toplevel()
+    win.title("Cajeros"); win.geometry("800x480"); win.configure(bg=BG)
+    header(win,"CAJEROS","Listado de cajeros")
+    tabla = scrollable_table(win,("ID","Nombre","Apellido","RUT"),
+                             [70,200,200,180],name="Caj",accent=SUBTEXT)
+    for c in obtener_cajeros(): tabla.insert("","end",values=c)
