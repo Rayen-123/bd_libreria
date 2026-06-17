@@ -35,13 +35,17 @@ def entry(parent, row, col, width=24, bg=None):
     e.grid(row=row, column=col, padx=8, pady=4, ipady=5)
     return e
 
-def combo(parent, vals, width=30):
+""" def combo(parent, vals, width=30):
     from tkinter import ttk
     cb = ttk.Combobox(parent, values=vals, font=("Courier New", 10),
                       width=width, state="readonly")
     s = ttk.Style()
     s.configure("TCombobox", fieldbackground=BG, foreground=TEXT, arrowcolor=ACCENT)
-    return cb
+    return cb """
+
+def combo(parent, vals, width=30):
+    from tkinter import ttk
+    return ttk.Combobox(parent,values=vals,font=("Courier New", 10),width=width,state="readonly")
 
 def btn(parent, text, cmd, color=None, width=16):
     import tkinter as tk
