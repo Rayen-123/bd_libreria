@@ -33,7 +33,8 @@ BEGIN
         
 		v_apellido := last_names[1 + floor(random() * array_length(last_names, 1))::INT];
     
-		v_rut := to_char((8000000 + (random() * 15000000)::INT), 'FM99.999.999') || '-' || (random() * 9)::INT::TEXT;
+		v_rut := LPAD(((8000000 + (random() * 15000000)::INT))::TEXT, 8, '0');
+        v_rut := substring(v_rut,1,2) || '.' || substring(v_rut,3,3) || '.' || substring(v_rut,6,3) || '-' || (floor(random() * 9)::INT)::TEXT;
         
         v_telefono := '+569' || (10000000 + (random() * 89999999)::INT)::TEXT;
         
@@ -112,6 +113,7 @@ DECLARE
     v_rol empleado_rol;
     v_tipo_turno empleado_tipo_turno;
     v_id_contrato INT;
+    v_id_sucursal INT;
     i INT;
 BEGIN
     FOR i IN 1..12 LOOP
@@ -119,17 +121,19 @@ BEGIN
         
 		v_apellido := last_names[1 + floor(random() * array_length(last_names, 1))::INT];
     
-		v_rut := to_char((8000000 + (random() * 15000000)::INT), 'FM99.999.999') || '-' || (random() * 9)::INT::TEXT;
+		v_rut := LPAD(((8000000 + (random() * 15000000)::INT))::TEXT, 8, '0');
+        v_rut := substring(v_rut,1,2) || '.' || substring(v_rut,3,3) || '.' || substring(v_rut,6,3) || '-' || (floor(random() * 9)::INT)::TEXT;
         
         -- 75% cajeros, 25% reponedores
         v_rol := CASE WHEN i <= 9 THEN 'cajero'::empleado_rol ELSE 'reponedor'::empleado_rol END;
-        v_turno := CASE WHEN random() < 0.5 THEN 'fijo'::empleado_tipo_turno ELSE 'rotativo'::empleado_tipo_turno END;
+        v_tipo_turno := CASE WHEN random() < 0.5 THEN 'fijo'::empleado_tipo_turno ELSE 'rotativo'::empleado_tipo_turno END;
         
         -- dar un contrato de manera aleatoria
         SELECT id_contrato INTO v_id_contrato FROM contrato ORDER BY random() LIMIT 1;
         
+        SELECT id_sucursal INTO v_id_sucursal FROM sucursal ORDER BY random() LIMIT 1;
         INSERT INTO empleado (id_contrato, id_sucursal, tipo_turno, rol, nombre, apellido, rut)
-        VALUES (v_id_contrato, 1 + (random() * 5)::INT, v_turno, v_rol, v_nombre, v_apellido, v_rut);
+        VALUES (v_id_contrato, v_id_sucursal, v_tipo_turno, v_rol, v_nombre, v_apellido, v_rut);
     END LOOP;
 END $$;
 
@@ -224,7 +228,7 @@ BEGIN
         VALUES (
             v_nombre,
             v_apellido,
-            countries[1 + floor(random() * (array_length(countries, 1))::INT]
+            countries[1 + floor(random() * array_length(countries, 1))::INT]
         );
     END LOOP;
 END $$;
@@ -372,6 +376,15 @@ INSERT INTO producto (nombre, precio) VALUES
     ('Goma de borrar premium', 1500.00);
 
 -- ============================================
+-- 13b. ENLAZAR LIBROS CON SUS PRODUCTOS
+-- ============================================
+UPDATE libro l
+SET id_producto = p.id_producto
+FROM producto p
+WHERE p.nombre = l.titulo
+  AND p.precio = l.precio;
+
+-- ============================================
 -- 14. STOCK DE PRODUCTOS
 -- ============================================
 DO $$
@@ -434,11 +447,7 @@ BEGIN
             v_hora_base := v_fecha_actual + TIME '08:00:00' + (random() * 50400)::INT * INTERVAL '1 second';
             
             -- 95% de las ventas tienen cliente, 5% usan cliente por defecto
-            IF random() < 0.95 THEN
-                SELECT id_cliente INTO v_id_cliente FROM cliente ORDER BY random() LIMIT 1;
-            ELSE
-                v_id_cliente := 1;
-            END IF;
+            SELECT id_cliente INTO v_id_cliente FROM cliente ORDER BY random() LIMIT 1;
             
             -- Caja y cajero aleatorios de la misma sucursal
             SELECT cct.id_caja, cct.id_cajero INTO v_id_caja, v_id_cajero
@@ -469,8 +478,7 @@ BEGIN
                 -- Revisar si el producto es un libro y obtener su año de publicación
                 SELECT l.anio_publicacion INTO v_anio_publicacion
                 FROM libro l
-                JOIN producto p ON l.titulo = p.nombre AND l.precio = p.precio
-                WHERE p.id_producto = v_id_producto;
+                WHERE l.id_producto = v_id_producto;
                 
                 v_es_libro := v_anio_publicacion IS NOT NULL;
                 
@@ -479,7 +487,7 @@ BEGIN
                     -- Buscar otro producto que no sea libro o que tenga año de publicación válido
                     SELECT p.id_producto, p.precio INTO v_id_producto, v_precio
                     FROM producto p
-                    LEFT JOIN libro l ON l.titulo = p.nombre AND l.precio = p.precio
+                    LEFT JOIN libro l ON l.id_producto = p.id_producto
                     WHERE (l.id_libro IS NULL) OR (l.anio_publicacion <= EXTRACT(YEAR FROM v_hora_base))
                     ORDER BY random() LIMIT 1;
                     
@@ -487,7 +495,7 @@ BEGIN
                     IF NOT FOUND THEN
                         SELECT p.id_producto, p.precio INTO v_id_producto, v_precio
                         FROM producto p
-                        LEFT JOIN libro l ON l.titulo = p.nombre AND l.precio = p.precio
+                        LEFT JOIN libro l ON l.id_producto = p.id_producto
                         WHERE l.id_libro IS NULL
                         ORDER BY random() LIMIT 1;
                     END IF;
@@ -582,8 +590,7 @@ BEGIN
     -- Verificar que no hay ventas de libros antes de su publicación
     SELECT COUNT(*) INTO v_count
     FROM detalleventa dv
-    JOIN producto p ON dv.id_producto = p.id_producto
-    JOIN libro l ON l.titulo = p.nombre AND l.precio = p.precio
+    JOIN libro l ON l.id_producto = dv.id_producto
     JOIN venta v ON dv.id_venta = v.id_venta
     WHERE l.anio_publicacion > EXTRACT(YEAR FROM v.fecha_hora);
     RAISE NOTICE 'Ventas inválidas de libros (venta antes de publicación): %', v_count;
