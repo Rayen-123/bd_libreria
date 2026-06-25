@@ -141,3 +141,36 @@ plt.gca().spines['right'].set_visible(False)
 plt.grid(axis='x', linestyle='--', alpha=0.4)
 plt.tight_layout()
 plt.show()
+
+# ==========================================
+# GRÁFICO 5: Comparativa Directa de Ventas por Sucursal
+# ==========================================
+consulta_simple = """
+    SELECT 
+        s.nombre_sucursal,
+        SUM(h.subtotal) as ingresos_totales
+    FROM hechos_ventas h
+    JOIN dim_sucursal s ON h.id_sucursal = s.id_sucursal
+    GROUP BY s.nombre_sucursal
+    ORDER BY ingresos_totales DESC;
+"""
+
+df_simple = pd.read_sql_query(consulta_simple, engine)
+
+plt.figure(figsize=(9, 5))
+
+# Gráfico de barras simple
+plt.bar(df_simple['nombre_sucursal'], df_simple['ingresos_totales'], color='royalblue', edgecolor='navy')
+
+plt.title('Ingresos Totales por Sucursal', fontsize=14, fontweight='bold', pad=15)
+plt.xlabel('Sucursal', fontsize=12)
+plt.ylabel('Ingresos Totales ($)', fontsize=12)
+
+# Añadir una cuadrícula horizontal suave para facilitar la lectura de los montos
+plt.grid(axis='y', linestyle='--', alpha=0.5)
+
+# Ajustar las etiquetas del eje X para que no se encimen
+plt.xticks(rotation=30, ha='right')
+
+plt.tight_layout()
+plt.show()
